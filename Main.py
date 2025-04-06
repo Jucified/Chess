@@ -11,6 +11,7 @@ class GameEngine:
 
         self.current: str = "w"
         self.opposite: str = "b"
+        self.clicked: tuple[int, int, str] = (0, 0, "")
         self.legal: list[tuple[int, int]] = []
 
         self.pieces = (
@@ -37,8 +38,8 @@ class GameEngine:
             ["br ", "bn ", "bb ", "bq ", "bk ", "bb ", "bn ", "br "],
             ["bp ", "bp ", "bp ", "bp ", "bp ", "bp ", "bp ", "bp "],
             ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
-            ["   ", "   ", "   ", "wq ", "   ", "   ", "   ", "   "],
-            ["   ", "   ", "   ", "   ", "bp ", "   ", "   ", "   "],
+            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
+            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
             ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
             ["wp ", "wp ", "wp ", "wp ", "wp ", "wp ", "wp ", "wp "],
             ["wr ", "wn ", "wb ", "wq ", "wk ", "wb ", "wn ", "wr "]
@@ -81,7 +82,7 @@ class GameEngine:
         """Adds legal pawn moves to self.legal"""
         if self.board[y - 1][x] == "   ":
             self.legal.append((x, y - 1))
-            if self.board[y - 2][x] == "   ":
+            if self.board[y - 2][x] == "   " and y == 6:
                 self.legal.append((x, y - 2))
         if x != 7 and self.board[y - 1][x + 1][0] == self.opposite:
             self.legal.append((x + 1, y - 1))
@@ -90,7 +91,14 @@ class GameEngine:
 
     def legal_knight_moves(self, x: int, y: int) -> None:
         """Adds legal knight moves to self.legal"""
-        pass
+        for a in range(-1, 2, 2):
+            for b in range(-2, 3, 4):
+                if 0 <= x + a < 8 and 0 <= y + b < 8 and self.board[y + b][x + a][0] != self.current:
+                    self.legal.append((x + a, y + b))
+        for a in range(-2, 3, 4):
+            for b in range(-1, 2, 2):
+                if 0 <= x + a < 8 and 0 <= y + b < 8 and self.board[y + b][x + a][0] != self.current:
+                    self.legal.append((x + a, y + b))
 
     def legal_bishop_moves(self, x: int, y: int) -> None:
         """Adds legal bishop moves to self.legal"""
@@ -140,9 +148,8 @@ class GameEngine:
         """Adds legal king moves to self.legal"""
         for a in range(-1, 2):
             for b in range(-1, 2):
-                m, n = x + a, y + b
-                if 0 <= m < 8 and 0 <= n < 8 and self.board[n][m][0] != self.current:
-                    self.legal.append((m, n))
+                if 0 <= x + a < 8 and 0 <= y + b < 8 and self.board[y + b][x + a][0] != self.current:
+                    self.legal.append((x + a, y + b))
 
     def add_legal_moves(self, x: int, y: int) -> None:
         """Adds the legal moves to self.legal"""
@@ -161,10 +168,17 @@ class GameEngine:
                 self.legal_queen_moves(x, y)
             case "k":
                 self.legal_king_moves(x, y)
+        for x, y in self.legal:
+            self.board[y][x] = self.board[y][x][:2] + "*"
 
-    def move_piece(self) -> None:
+    def move_piece(self, x: int, y: int) -> None:
         """Moves a piece to a legal spot"""
-        pass
+        self.board[self.clicked[1]][self.clicked[0]] = "   "
+        self.board[y][x] = self.clicked[2]
+        for x in range(8):
+            for y in range(8):
+                if self.board[y][x][2] == "*":
+                    self.board[y][x] = self.board[y][x][:2] + " "
 
     def switch_turns(self) -> None:
         """Flips the board and switches turns"""
@@ -177,12 +191,16 @@ class GameEngine:
         y: int = math.floor(position[1] / 100)
 
         if self.board[y][x] == "   ": return
-        if self.board[y][x][0] != self.current and self.board[y][x][2] != "*": return
+        if self.board[y][x][2] == " " and self.board[y][x][0] == self.opposite: return
 
-        if self.board[y][x] == "  *":
-            self.move_piece()
+        if self.board[y][x][2] == "*":
+            self.move_piece(x, y)
+            self.clicked = (0, 0, "")
+            self.legal.clear()
+            self.switch_turns()
         else:
             self.add_legal_moves(x, y)
+            self.clicked = (x, y, self.board[y][x])
 
     def update_game(self) -> None:
         """Main game loop"""
