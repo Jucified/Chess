@@ -35,14 +35,14 @@ class GameEngine:
                       pygame.transform.scale(pygame.image.load("moves_ring.png").convert_alpha(), (100, 100)))
 
         self.board: list[list[str]] = [
-            ["br ", "bn ", "bb ", "bq ", "bk ", "bb ", "bn ", "br "],
-            ["bp ", "bp ", "bp ", "bp ", "bp ", "bp ", "bp ", "bp "],
-            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
-            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
-            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
-            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
-            ["wp ", "wp ", "wp ", "wp ", "wp ", "wp ", "wp ", "wp "],
-            ["wr ", "wn ", "wb ", "wq ", "wk ", "wb ", "wn ", "wr "]
+            ["br", "bn", "bb", "bq", "bk", "bb", "bn", "br"],
+            ["bp", "bp", "bp", "bp", "bp", "bp", "bp", "bp"],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["  ", "  ", "  ", "  ", "  ", "  ", "  ", "  "],
+            ["wp", "wp", "wp", "wp", "wp", "wp", "wp", "wp"],
+            ["wr", "wn", "wb", "wq", "wk", "wb", "wn", "wr"]
         ]
 
     def draw_chessboard(self) -> None:
@@ -58,7 +58,7 @@ class GameEngine:
         for x in range(8):
             for y in range(8):
                 piece: str = self.board[y][x]
-                if piece[:2] == "  ": continue
+                if piece == "  ": continue
 
                 color: int = 0 if piece[0] == "w" else 1
                 piece_type: int = ["p", "n", "b", "r", "q", "k"].index(piece[1])
@@ -67,7 +67,7 @@ class GameEngine:
     def draw_legal_moves(self) -> None:
         """Draws legal spots to move to based on self.board"""
         for x, y in self.legal:
-            if self.board[y][x][:2] == "  ":
+            if self.board[y][x] == "  ":
                 self.screen.blit(self.moves[0], (100 * x, 100 * y))
             else:
                 self.screen.blit(self.moves[1], (100 * x, 100 * y))
@@ -80,9 +80,9 @@ class GameEngine:
 
     def legal_pawn_moves(self, x: int, y: int) -> None:
         """Adds legal pawn moves to self.legal"""
-        if self.board[y - 1][x] == "   ":
+        if self.board[y - 1][x] == "  ":
             self.legal.append((x, y - 1))
-            if self.board[y - 2][x] == "   " and y == 6:
+            if self.board[y - 2][x] == "  " and y == 6:
                 self.legal.append((x, y - 2))
         if x != 7 and self.board[y - 1][x + 1][0] == self.opposite:
             self.legal.append((x + 1, y - 1))
@@ -107,7 +107,7 @@ class GameEngine:
                 distance_x: int = sign_x
                 distance_y: int = sign_y
                 while 0 <= x - distance_x < 8 and 0 <= y - distance_y < 8:
-                    if self.board[y - distance_y][x - distance_x][:2] == "  ":
+                    if self.board[y - distance_y][x - distance_x] == "  ":
                         self.legal.append((x - distance_x, y - distance_y))
                     elif self.board[y - distance_y][x - distance_x][0] == self.opposite:
                         self.legal.append((x - distance_x, y - distance_y))
@@ -121,7 +121,7 @@ class GameEngine:
         for sign in range(-1, 2, 2):
             distance: int = sign
             while 0 <= x + distance < 8:
-                if self.board[y][x + distance][:2] == "  ":
+                if self.board[y][x + distance] == "  ":
                     self.legal.append((x + distance, y))
                 elif self.board[y][x + distance][0] == self.opposite:
                     self.legal.append((x + distance, y))
@@ -131,7 +131,7 @@ class GameEngine:
         for sign in range(-1, 2, 2):
             distance: int = sign
             while 0 <= y + distance < 8:
-                if self.board[y + distance][x][:2] == "  ":
+                if self.board[y + distance][x] == "  ":
                     self.legal.append((x, y + distance))
                 elif self.board[y + distance][x][0] == self.opposite:
                     self.legal.append((x, y + distance))
@@ -168,17 +168,11 @@ class GameEngine:
                 self.legal_queen_moves(x, y)
             case "k":
                 self.legal_king_moves(x, y)
-        for x, y in self.legal:
-            self.board[y][x] = self.board[y][x][:2] + "*"
 
     def move_piece(self, x: int, y: int) -> None:
         """Moves a piece to a legal spot"""
-        self.board[self.clicked[1]][self.clicked[0]] = "   "
+        self.board[self.clicked[1]][self.clicked[0]] = "  "
         self.board[y][x] = self.clicked[2]
-        for x in range(8):
-            for y in range(8):
-                if self.board[y][x][2] == "*":
-                    self.board[y][x] = self.board[y][x][:2] + " "
 
     def switch_turns(self) -> None:
         """Flips the board and switches turns"""
@@ -189,18 +183,15 @@ class GameEngine:
         """Run when the board is clicked"""
         x: int = math.floor(position[0] / 100)
         y: int = math.floor(position[1] / 100)
+        if self.board[y][x][0] == self.opposite and (x, y) not in self.legal: return
 
-        if self.board[y][x] == "   ": return
-        if self.board[y][x][2] == " " and self.board[y][x][0] == self.opposite: return
-
-        if self.board[y][x][2] == "*":
+        if (x, y) in self.legal:
             self.move_piece(x, y)
-            self.clicked = (0, 0, "")
             self.legal.clear()
             self.switch_turns()
         else:
             self.add_legal_moves(x, y)
-            self.clicked = (x, y, self.board[y][x])
+            self.clicked = (x, y, self.board[y][x][:2])
 
     def update_game(self) -> None:
         """Main game loop"""
