@@ -33,12 +33,12 @@ class GameEngine:
         self.moves = (pygame.transform.scale(pygame.image.load("moves_dot.png").convert_alpha(), (100, 100)),
                       pygame.transform.scale(pygame.image.load("moves_ring.png").convert_alpha(), (100, 100)))
 
-        self.board = [
+        self.board: list[list[str]] = [
             ["br ", "bn ", "bb ", "bq ", "bk ", "bb ", "bn ", "br "],
             ["bp ", "bp ", "bp ", "bp ", "bp ", "bp ", "bp ", "bp "],
             ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
-            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
-            ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
+            ["   ", "   ", "   ", "wq ", "   ", "   ", "   ", "   "],
+            ["   ", "   ", "   ", "   ", "bp ", "   ", "   ", "   "],
             ["   ", "   ", "   ", "   ", "   ", "   ", "   ", "   "],
             ["wp ", "wp ", "wp ", "wp ", "wp ", "wp ", "wp ", "wp "],
             ["wr ", "wn ", "wb ", "wq ", "wk ", "wb ", "wn ", "wr "]
@@ -77,51 +77,104 @@ class GameEngine:
         self.draw_pieces()
         self.draw_legal_moves()
 
+    def legal_pawn_moves(self, x: int, y: int) -> None:
+        """Adds legal pawn moves to self.legal"""
+        if self.board[y - 1][x] == "   ":
+            self.legal.append((x, y - 1))
+            if self.board[y - 2][x] == "   ":
+                self.legal.append((x, y - 2))
+        if x != 7 and self.board[y - 1][x + 1][0] == self.opposite:
+            self.legal.append((x + 1, y - 1))
+        if x != 0 and self.board[y - 1][x - 1][0] == self.opposite:
+            self.legal.append((x - 1, y - 1))
+
+    def legal_knight_moves(self, x: int, y: int) -> None:
+        """Adds legal knight moves to self.legal"""
+        pass
+
+    def legal_bishop_moves(self, x: int, y: int) -> None:
+        """Adds legal bishop moves to self.legal"""
+        for sign_x in range(-1, 2, 2):
+            for sign_y in range(-1, 2, 2):
+                distance_x: int = sign_x
+                distance_y: int = sign_y
+                while 0 <= x - distance_x < 8 and 0 <= y - distance_y < 8:
+                    if self.board[y - distance_y][x - distance_x][:2] == "  ":
+                        self.legal.append((x - distance_x, y - distance_y))
+                    elif self.board[y - distance_y][x - distance_x][0] == self.opposite:
+                        self.legal.append((x - distance_x, y - distance_y))
+                        break
+                    else: break
+                    distance_x += sign_x
+                    distance_y += sign_y
+
+    def legal_rook_moves(self, x: int, y: int) -> None:
+        """Adds legal rook moves to self.legal"""
+        for sign in range(-1, 2, 2):
+            distance: int = sign
+            while 0 <= x + distance < 8:
+                if self.board[y][x + distance][:2] == "  ":
+                    self.legal.append((x + distance, y))
+                elif self.board[y][x + distance][0] == self.opposite:
+                    self.legal.append((x + distance, y))
+                    break
+                else: break
+                distance += sign
+        for sign in range(-1, 2, 2):
+            distance: int = sign
+            while 0 <= y + distance < 8:
+                if self.board[y + distance][x][:2] == "  ":
+                    self.legal.append((x, y + distance))
+                elif self.board[y + distance][x][0] == self.opposite:
+                    self.legal.append((x, y + distance))
+                    break
+                else: break
+                distance += sign
+
+    def legal_queen_moves(self, x: int, y: int) -> None:
+        """Adds legal queen moves to self.legal"""
+        self.legal_bishop_moves(x, y)
+        self.legal_rook_moves(x, y)
+
+    def legal_king_moves(self, x: int, y: int) -> None:
+        """Adds legal king moves to self.legal"""
+        for a in range(-1, 2):
+            for b in range(-1, 2):
+                m, n = x + a, y + b
+                if 0 <= m < 8 and 0 <= n < 8 and self.board[n][m][0] != self.current:
+                    self.legal.append((m, n))
+
     def add_legal_moves(self, x: int, y: int) -> None:
         """Adds the legal moves to self.legal"""
         piece: str = self.board[y][x]
         self.legal.clear()
         match piece[1]:
             case "p":
-                if self.board[y - 1][x] == "   ":
-                    self.legal.append((x, y - 1))
-                    if self.board[y - 2][x] == "   ":
-                        self.legal.append((x, y - 2))
-                if x != 7 and self.board[y - 1][x + 1][0] == self.opposite:
-                    self.legal.append((x + 1, y - 1))
-                if x != 0 and self.board[y - 1][x - 1][0] == self.opposite:
-                    self.legal.append((x - 1, y - 1))
-
+                self.legal_pawn_moves(x, y)
             case "n":
-                pass
-
+                self.legal_knight_moves(x, y)
             case "b":
-                pass
-
+                self.legal_bishop_moves(x, y)
             case "r":
-                pass
-
+                self.legal_rook_moves(x, y)
             case "q":
-                pass
-
+                self.legal_queen_moves(x, y)
             case "k":
-                for a in range(-1, 2):
-                    for b in range(-1, 2):
-                        m, n = x + a, y + b
-                        if 0 <= m < 8 and 0 <= n < 8 and self.board[n][m][0] != self.current:
-                            self.legal.append((m, n))
+                self.legal_king_moves(x, y)
 
     def move_piece(self) -> None:
+        """Moves a piece to a legal spot"""
         pass
 
     def switch_turns(self) -> None:
+        """Flips the board and switches turns"""
         self.board = [row[::-1] for row in self.board[::-1]]
         self.current, self.opposite = self.opposite, self.current
 
-    def on_mouse_click(self, event) -> None:
-        x, y = event.pos
-        x: int = math.floor(x / 100)
-        y: int = math.floor(y / 100)
+    def on_mouse_click(self, position: tuple[int, int]) -> None:
+        """Run when the board is clicked"""
+        x: int = math.floor(position[0] / 100)
+        y: int = math.floor(position[1] / 100)
 
         if self.board[y][x] == "   ": return
         if self.board[y][x][0] != self.current and self.board[y][x][2] != "*": return
@@ -132,14 +185,14 @@ class GameEngine:
             self.add_legal_moves(x, y)
 
     def update_game(self) -> None:
+        """Main game loop"""
         game.update_board()
-
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                self.on_mouse_click(event)
+                self.on_mouse_click(event.pos)
 
         pygame.display.flip()
         self.clock.tick()
