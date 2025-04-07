@@ -12,6 +12,7 @@ class GameEngine:
         self.current: str = "w"
         self.opposite: str = "b"
         self.clicked: tuple[int, int, str] = (0, 0, "")
+        self.danger: bool = False
         self.legal: list[tuple[int, int]] = []
 
         self.pieces = (
@@ -174,6 +175,22 @@ class GameEngine:
         self.board[self.clicked[1]][self.clicked[0]] = "  "
         self.board[y][x] = self.clicked[2]
 
+    def danger_check(self) -> None:
+        """Checks if the king may be in danger"""
+        self.danger = False
+        king_x, king_y = 0, 0
+        for x in range(8):
+            for y in range(8):
+                if self.board[y][x] == self.current + "k ":
+                    king_x, king_y = x, y
+        self.legal_pawn_moves(king_x, king_y)
+        self.legal_knight_moves(king_x, king_y)
+        self.legal_bishop_moves(king_x, king_y)
+        self.legal_rook_moves(king_x, king_y)
+        if len(self.legal) > 0:
+            self.danger = True
+        self.legal.clear()
+
     def switch_turns(self) -> None:
         """Flips the board and switches turns"""
         self.board = [row[::-1] for row in self.board[::-1]]
@@ -191,7 +208,7 @@ class GameEngine:
             self.switch_turns()
         else:
             self.add_legal_moves(x, y)
-            self.clicked = (x, y, self.board[y][x][:2])
+            self.clicked = (x, y, self.board[y][x])
 
     def update_game(self) -> None:
         """Main game loop"""
