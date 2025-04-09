@@ -1,3 +1,5 @@
+from typing import Any
+
 import pygame
 import sys
 import math
@@ -79,53 +81,60 @@ class GameEngine:
         self.draw_pieces()
         self.draw_legal_moves()
 
-    def legal_pawn_moves(self, x: int, y: int) -> None:
+    def legal_pawn_moves(self, x: int, y: int) -> list[tuple[int, int]]:
         """Adds legal pawn moves to self.legal"""
+        moves = []
         if self.board[y - 1][x] == "  ":
-            self.legal.append((x, y - 1))
+            moves.append((x, y - 1))
             if self.board[y - 2][x] == "  " and y == 6:
-                self.legal.append((x, y - 2))
+                moves.append((x, y - 2))
         if x != 7 and self.board[y - 1][x + 1][0] == self.opposite:
-            self.legal.append((x + 1, y - 1))
+            moves.append((x + 1, y - 1))
         if x != 0 and self.board[y - 1][x - 1][0] == self.opposite:
-            self.legal.append((x - 1, y - 1))
+            moves.append((x - 1, y - 1))
+        return moves
 
-    def legal_knight_moves(self, x: int, y: int) -> None:
+    def legal_knight_moves(self, x: int, y: int) -> list[tuple[int, int]]:
         """Adds legal knight moves to self.legal"""
+        moves = []
         for a in range(-1, 2, 2):
             for b in range(-2, 3, 4):
                 if 0 <= x + a < 8 and 0 <= y + b < 8 and self.board[y + b][x + a][0] != self.current:
-                    self.legal.append((x + a, y + b))
+                    moves.append((x + a, y + b))
         for a in range(-2, 3, 4):
             for b in range(-1, 2, 2):
                 if 0 <= x + a < 8 and 0 <= y + b < 8 and self.board[y + b][x + a][0] != self.current:
-                    self.legal.append((x + a, y + b))
+                    moves.append((x + a, y + b))
+        return moves
 
-    def legal_bishop_moves(self, x: int, y: int) -> None:
+    def legal_bishop_moves(self, x: int, y: int) -> list[tuple[int | Any, int | Any]]:
         """Adds legal bishop moves to self.legal"""
+        moves = []
         for sign_x in range(-1, 2, 2):
             for sign_y in range(-1, 2, 2):
                 distance_x: int = sign_x
                 distance_y: int = sign_y
                 while 0 <= x - distance_x < 8 and 0 <= y - distance_y < 8:
                     if self.board[y - distance_y][x - distance_x] == "  ":
-                        self.legal.append((x - distance_x, y - distance_y))
+                        moves.append((x - distance_x, y - distance_y))
                     elif self.board[y - distance_y][x - distance_x][0] == self.opposite:
-                        self.legal.append((x - distance_x, y - distance_y))
+                        moves.append((x - distance_x, y - distance_y))
                         break
                     else: break
                     distance_x += sign_x
                     distance_y += sign_y
+        return moves
 
-    def legal_rook_moves(self, x: int, y: int) -> None:
+    def legal_rook_moves(self, x: int, y: int) -> list[tuple[int | Any, int] | tuple[int, int | Any]]:
         """Adds legal rook moves to self.legal"""
+        moves = []
         for sign in range(-1, 2, 2):
             distance: int = sign
             while 0 <= x + distance < 8:
                 if self.board[y][x + distance] == "  ":
-                    self.legal.append((x + distance, y))
+                    moves.append((x + distance, y))
                 elif self.board[y][x + distance][0] == self.opposite:
-                    self.legal.append((x + distance, y))
+                    moves.append((x + distance, y))
                     break
                 else: break
                 distance += sign
@@ -133,63 +142,102 @@ class GameEngine:
             distance: int = sign
             while 0 <= y + distance < 8:
                 if self.board[y + distance][x] == "  ":
-                    self.legal.append((x, y + distance))
+                    moves.append((x, y + distance))
                 elif self.board[y + distance][x][0] == self.opposite:
-                    self.legal.append((x, y + distance))
+                    moves.append((x, y + distance))
                     break
                 else: break
                 distance += sign
+        return moves
 
-    def legal_queen_moves(self, x: int, y: int) -> None:
+    def legal_queen_moves(self, x: int, y: int) -> list[Any]:
         """Adds legal queen moves to self.legal"""
+        moves = []
         self.legal_bishop_moves(x, y)
         self.legal_rook_moves(x, y)
+        return moves
 
-    def legal_king_moves(self, x: int, y: int) -> None:
+    def legal_king_moves(self, x: int, y: int) -> list[tuple[int, int]]:
         """Adds legal king moves to self.legal"""
+        moves = []
         for a in range(-1, 2):
             for b in range(-1, 2):
                 if 0 <= x + a < 8 and 0 <= y + b < 8 and self.board[y + b][x + a][0] != self.current:
-                    self.legal.append((x + a, y + b))
+                    moves.append((x + a, y + b))
+        return moves
 
     def add_legal_moves(self, x: int, y: int) -> None:
         """Adds the legal moves to self.legal"""
         piece: str = self.board[y][x]
         self.legal.clear()
+        moves = []
+
         match piece[1]:
             case "p":
-                self.legal_pawn_moves(x, y)
+                moves = self.legal_pawn_moves(x, y)
             case "n":
-                self.legal_knight_moves(x, y)
+                moves = self.legal_knight_moves(x, y)
             case "b":
-                self.legal_bishop_moves(x, y)
+                moves = self.legal_bishop_moves(x, y)
             case "r":
-                self.legal_rook_moves(x, y)
+                moves = self.legal_rook_moves(x, y)
             case "q":
-                self.legal_queen_moves(x, y)
+                moves = self.legal_queen_moves(x, y)
             case "k":
-                self.legal_king_moves(x, y)
+                moves = self.legal_king_moves(x, y)
+
+        self.legal = [
+            (new_x, new_y)
+            for new_x, new_y in moves
+            if self.is_move_safe(x, y, new_x, new_y)
+        ]
 
     def move_piece(self, x: int, y: int) -> None:
         """Moves a piece to a legal spot"""
         self.board[self.clicked[1]][self.clicked[0]] = "  "
         self.board[y][x] = self.clicked[2]
 
-    def danger_check(self) -> None:
+    def is_in_check(self) -> None:
         """Checks if the king may be in danger"""
         self.danger = False
-        king_x, king_y = 0, 0
+        king_x: int = 0
+        king_y: int = 0
         for x in range(8):
             for y in range(8):
                 if self.board[y][x] == self.current + "k ":
                     king_x, king_y = x, y
-        self.legal_pawn_moves(king_x, king_y)
-        self.legal_knight_moves(king_x, king_y)
-        self.legal_bishop_moves(king_x, king_y)
-        self.legal_rook_moves(king_x, king_y)
-        if len(self.legal) > 0:
-            self.danger = True
-        self.legal.clear()
+                    break
+
+        for x in range(8):
+            for y in range(8):
+                piece = self.board[y][x]
+                if piece[0] != self.opposite:
+                    continue
+
+                temp_legal = []
+                match piece[1]:
+                    case "p":
+                        self.legal_pawn_moves(x, y)
+                    case "n":
+                        self.legal_knight_moves(x, y)
+                    case "b":
+                        self.legal_bishop_moves(x, y)
+                    case "r":
+                        self.legal_rook_moves(x, y)
+                    case "q":
+                        self.legal_queen_moves(x, y)
+                    case "k":
+                        self.legal_king_moves(x, y)
+
+                if (king_x, king_y) in temp_legal:
+                    self.danger = True
+
+    def is_move_safe(self, old_x, old_y, new_x, new_y):
+        temp_board = [row.copy() for row in self.board]
+        piece = temp_board[old_y][old_x]
+        temp_board[new_y][new_x] = piece
+        temp_board[old_y][old_x] = "  "
+        return not self.is_in_check()
 
     def switch_turns(self) -> None:
         """Flips the board and switches turns"""
