@@ -14,7 +14,6 @@ class GameEngine:
         self.current: str = "w"
         self.opposite: str = "b"
         self.clicked: tuple[int, int, str] = (0, 0, "")
-        self.danger: bool = False
         self.legal: list[tuple[int, int]] = []
 
         self.pieces = (
@@ -152,9 +151,7 @@ class GameEngine:
 
     def legal_queen_moves(self, x: int, y: int) -> list[Any]:
         """Adds legal queen moves to self.legal"""
-        moves = []
-        self.legal_bishop_moves(x, y)
-        self.legal_rook_moves(x, y)
+        moves = self.legal_bishop_moves(x, y) + self.legal_rook_moves(x, y)
         return moves
 
     def legal_king_moves(self, x: int, y: int) -> list[tuple[int, int]]:
@@ -197,42 +194,37 @@ class GameEngine:
         self.board[self.clicked[1]][self.clicked[0]] = "  "
         self.board[y][x] = self.clicked[2]
 
-    def is_in_check(self) -> None:
+    def is_in_check(self) -> bool:
         """Checks if the king may be in danger"""
-        self.danger = False
         king_x: int = 0
         king_y: int = 0
         for x in range(8):
             for y in range(8):
-                if self.board[y][x] == self.current + "k ":
+                if self.board[y][x] == self.current + "k":
                     king_x, king_y = x, y
                     break
 
-        for x in range(8):
-            for y in range(8):
-                piece = self.board[y][x]
-                if piece[0] != self.opposite:
-                    continue
+        print(f"{king_x}, {king_y}")
 
-                temp_legal = []
-                match piece[1]:
-                    case "p":
-                        self.legal_pawn_moves(x, y)
-                    case "n":
-                        self.legal_knight_moves(x, y)
-                    case "b":
-                        self.legal_bishop_moves(x, y)
-                    case "r":
-                        self.legal_rook_moves(x, y)
-                    case "q":
-                        self.legal_queen_moves(x, y)
-                    case "k":
-                        self.legal_king_moves(x, y)
+        if king_x != 7 and self.board[king_y - 1][king_x + 1] == self.opposite + "p":
+            return True
+        if king_x != 0 and self.board[king_y - 1][king_x - 1] == self.opposite + "p":
+            return True
 
-                if (king_x, king_y) in temp_legal:
-                    self.danger = True
+        for check_x, check_y in self.legal_knight_moves(king_x, king_y):
+            if self.board[check_y][check_x] == self.opposite + "n":
+                return True
+        for check_x, check_y in self.legal_bishop_moves(king_x, king_y):
+            if self.board[check_y][check_x] == self.opposite + "b" or self.board[check_y][check_x] == self.opposite + "q":
+                return True
+        for check_x, check_y in self.legal_rook_moves(king_x, king_y):
+            if self.board[check_y][check_x] == self.opposite + "r" or self.board[check_y][check_x] == self.opposite + "q":
+                return True
+
+        return False
 
     def is_move_safe(self, old_x, old_y, new_x, new_y):
+        """Checks if a move does not leave the king in danger"""
         temp_board = [row.copy() for row in self.board]
         piece = temp_board[old_y][old_x]
         temp_board[new_y][new_x] = piece
